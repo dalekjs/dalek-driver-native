@@ -77,10 +77,16 @@ function DalekNative (opts) {
 
 DalekNative.prototype.start = function () {
     var deferred = Q.defer();
-    client.createSession()
-        .then(function () {
-            deferred.resolve();
-        })
+
+    if(client.options.sessionId) {
+        deferred.resolve();
+    } else {
+        client
+            .createSession()
+            .then(function () {
+                deferred.resolve();
+            });
+    }
 
     return deferred.promise;
 };

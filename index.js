@@ -62,6 +62,8 @@ function DalekNative (opts) {
     this.events = opts.events;
     client = new WD(browser);
 
+    this.browserName = opts.browser;
+
     this.events.on('tests:complete:native:' + opts.browser, function () {
         browser.kill();
     }.bind(this));
@@ -118,12 +120,12 @@ DalekNative.prototype.end = function () {
  *
  */
 
-DalekNative.prototype.open = function (url) {
+DalekNative.prototype.open = function (url, hash, uuid) {
     lastCalledUrl = url;
     queue.push(client.url.bind(client, url));
     queue.push(function () {
         var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'open', value: url});
+        this.events.emit('driver:message', {key: 'open', value: url, hash: hash, uuid: uuid});
         deferred.resolve();
         return deferred.promise;
     }.bind(this));
@@ -228,12 +230,12 @@ DalekNative.prototype.attribute = function (selector, attribute, expected, hash)
  *
  */
 
-DalekNative.prototype.click = function (selector) {
+DalekNative.prototype.click = function (selector, hash, uuid) {
     queue.push(client.element.bind(client, selector));
     queue.push(client.click.bind(client));
     queue.push(function () {
         var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'click', value: selector});
+        this.events.emit('driver:message', {key: 'click', value: selector, uuid: uuid, hash: hash});
         deferred.resolve();
         return deferred.promise;
     }.bind(this));
@@ -243,12 +245,12 @@ DalekNative.prototype.click = function (selector) {
  *
  */
 
-DalekNative.prototype.waitForElement = function (selector, timeout) {
+DalekNative.prototype.waitForElement = function (selector, timeout, hash, uuid) {
     queue.push(client.implicitWait.bind(client, timeout));
     queue.push(function () {
         var deferred = Q.defer();
         setTimeout(function () {
-            this.events.emit('driver:message', {key: 'waitForElement', selector: selector});
+            this.events.emit('driver:message', {key: 'waitForElement', selector: selector, uuid: uuid, hash: hash});
             deferred.resolve();
         }.bind(this), timeout);
         return deferred.promise;
@@ -280,11 +282,11 @@ DalekNative.prototype.getNumberOfElements = function (selector, expected, hash) 
  *
  */
 
-DalekNative.prototype.back = function () {
+DalekNative.prototype.back = function (hash, uuid) {
     queue.push(client.back.bind(client));
     queue.push(function () {
         var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'back', value: null});
+        this.events.emit('driver:message', {key: 'back', value: null, uuid: uuid, hash: hash});
         deferred.resolve();
         return deferred.promise;
     }.bind(this));
@@ -294,11 +296,11 @@ DalekNative.prototype.back = function () {
  *
  */
 
-DalekNative.prototype.forward = function () {
+DalekNative.prototype.forward = function (hash, uuid) {
     queue.push(client.forward.bind(client));
     queue.push(function () {
         var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'forward', value: null});
+        this.events.emit('driver:message', {key: 'forward', value: null, uuid: uuid, hash: hash});
         deferred.resolve();
         return deferred.promise;
     }.bind(this));
@@ -308,13 +310,14 @@ DalekNative.prototype.forward = function () {
  *
  */
 
-DalekNative.prototype.screenshot = function (path, pathname) {
+DalekNative.prototype.screenshot = function (path, pathname, hash, uuid) {
     queue.push(client.screenshot.bind(client));
     queue.push(function (result) {
         var deferred = Q.defer();
         var base64Data = JSON.parse(result).value.replace(/^data:image\/png;base64,/,"");
-        require("fs").writeFile(path + pathname, base64Data, 'base64', function(err) {
-            this.events.emit('driver:message', {key: 'screenshot', value: path + pathname});
+        var filename = path + pathname.replace('.png', '_' + this.browserName + '.png');
+        require("fs").writeFile(filename, base64Data, 'base64', function(err) {
+            this.events.emit('driver:message', {key: 'screenshot', value: filename, uuid: uuid, hash: hash});
         }.bind(this));
         deferred.resolve();
         return deferred.promise;

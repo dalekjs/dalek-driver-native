@@ -25,301 +25,184 @@
 'use strict';
 
 // ext. libs
+var fs = require('fs');
 var Q = require('q');
 
 // int. libs
 var WD = require('dalek-internal-webdriver');
 
-// globals
-var client = null;
-var queue = [];
-var lastCalledUrl = null;
-
 /**
  * @module
  */
-
-module.exports.isMultiBrowser = function () {
-    return true;
-};
-
-module.exports.verifyBrowser = function (browser) {
-    return true;
-};
-
-module.exports.create = function (opts) {
-    return new DalekNative(opts);
-};
 
 /**
  * @constructor
  */
 
-function DalekNative (opts) {
-    var stream = '';
-    var browser = require('dalek-browser-' + opts.browser);
+var DalekNative = function (opts) {
+  var browsers = opts.config.get('browsers')[0];
+  var browserConf = null;
+  var browser;
 
-    this.events = opts.events;
-    client = new WD(browser);
 
-    this.browserName = opts.browser;
+  // TODO: REFACTOR & FINISH
+  try {
+    browser = require('dalek-browser-' + opts.browser);
 
-    this.events.on('tests:complete:native:' + opts.browser, function () {
-        browser.kill();
-    }.bind(this));
+    if (browsers[opts.browser]) {
+      browserConf = browsers[opts.browser];
+    }
 
-    browser.launch().then(function () {
-        opts.events.emit('driver:ready:native:' + opts.browser);
-    });
+  } catch (e) {
+    if (browsers[opts.browser] && browsers[opts.browser].actAs) {
+      browser = require('dalek-browser-' + browsers[opts.browser].actAs);
+      browserConf = browsers[opts.browser];
+    }
+  }
+
+  // prepare properties
+  this.actionQueue = [];
+  this.lastCalledUrl = null;
+  this.driverStatus = {};
+  this.sessionStatus = {};
+
+  // store injcted options in object properties
+  this.events = opts.events;
+  this.browserName = opts.browser;
+
+  // create a new webdriver client instance
+  this.webdriverClient = new WD(browser);
+
+  // issue the kill command to the browser, when all tests are completed
+  this.events.on('tests:complete:native:' + this.browserName, browser.kill.bind(browser));
+  // clear the webdriver session, when all tests are completed
+  this.events.on('tests:complete:native:' + this.browserName, this.webdriverClient.closeSession.bind(this.webdriverClient));
+
+  // launch the browser & when the browser launch
+  // promise is fullfilled, issue the driver:ready event
+  // for the particular browser
+  browser
+    .launch(browserConf)
+    .then(this.events.emit.bind(this.events, 'driver:ready:native:' + this.browserName));
 };
 
 /**
+ * Checks if a webdriver session has already been established,
+ * if not, create a new one
  *
+ * @method start
+ * @return {Q.promise}
  */
 
 DalekNative.prototype.start = function () {
-    var deferred = Q.defer();
+  var deferred = Q.defer();
 
-    if(client.options.sessionId) {
-        deferred.resolve();
-    } else {
-        client
-            .createSession()
-            .then(function () {
-                deferred.resolve();
-            });
-    }
-
+  // check if a session is already active,
+  // if so, reuse that one
+  if(this.webdriverClient.hasSession()) {
+    deferred.resolve();
     return deferred.promise;
+  }
+
+  // create a new webdriver session
+  // get the driver status
+  // get the session status
+  // resolve the promise (e.g. let them tests run)
+  this.webdriverClient
+    .createSession()
+    .then(this.webdriverClient.status.bind(this.webdriverClient))
+    .then(this._driverStatus.bind(this))
+    .then(this.webdriverClient.sessionInfo.bind(this.webdriverClient))
+    .then(this._sessionStatus.bind(this))
+    .then(deferred.resolve);
+
+  return deferred.promise;
 };
 
 /**
  *
  */
 
-DalekNative.prototype.run = function () {}
+DalekNative.prototype.run = function () {};
 
 /**
  *
  */
 
 DalekNative.prototype.end = function () {
-    var result = Q.resolve();
+  var result = Q.resolve();
 
-    queue.forEach(function (f) {
-        result = result.then(f);
-    });
+  // loop through all promises created by the remote methods
+  // this is synchronous, so it waits if a method is finished before
+  // the next one will be executed
+  this.actionQueue.forEach(function (f) {
+    result = result.then(f);
+  });
 
-    result.then(function () {
-        queue = [];
-        this.events.emit('driver:message', {key: 'run.complete', value: null});
-    }.bind(this));
+  // flush the queue & fire an event
+  // when the queue finished its executions
+  result.then(function () {
+    // clear the action queue
+    this.actionQueue = [];
+    // emit the run.complete event
+    this.events.emit('driver:message', {key: 'run.complete', value: null});
+  }.bind(this));
 };
 
 /**
  *
  */
 
-DalekNative.prototype.open = function (url, hash, uuid) {
-    lastCalledUrl = url;
-    queue.push(client.url.bind(client, url));
-    queue.push(function () {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'open', value: url, hash: hash, uuid: uuid});
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
+DalekNative.prototype._sessionStatus = function (sessionInfo) {
+  var defer = Q.defer();
+  this.sessionStatus = JSON.parse(sessionInfo).value;
+  this.events.emit('driver:sessionStatus:native:' + this.browserName, this.sessionStatus);
+  defer.resolve();
+  return defer.promise;
 };
 
 /**
  *
  */
 
-DalekNative.prototype.url = function (expected, hash) {
-    queue.push(client.getUrl.bind(client));
-    queue.push(function (url) {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: "url", expected: expected, hash: hash, value: JSON.parse(url).value});
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
+DalekNative.prototype._driverStatus = function (statusInfo) {
+  var defer = Q.defer();
+  this.driverStatus = JSON.parse(statusInfo).value;
+  this.events.emit('driver:status:native:' + this.browserName, this.driverStatus);
+  defer.resolve();
+  return defer.promise;
 };
 
 /**
  *
  */
 
-DalekNative.prototype.title = function (expected, hash) {
-    queue.push(client.title.bind(client));
-    queue.push(function (title) {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: "title", expected: expected, hash: hash, value: JSON.parse(title).value});
-        deferred.resolve();
-        return deferred.promise;
+DalekNative.prototype._createNonReturnee = function (fnName) {
+  return function (hash, uuid) {
+    this.actionQueue.push(this.webdriverClient[fnName].bind(this.webdriverClient));
+    this.actionQueue.push(function () {
+      var deferred = Q.defer();
+      this.events.emit('driver:message', {key: fnName, value: null, uuid: uuid, hash: hash});
+      deferred.resolve();
+      return deferred.promise;
     }.bind(this));
+  }.bind(this);
 };
 
-/**
- *
- */
-
-DalekNative.prototype.exists = function (selector, hash) {
-    queue.push(client.element.bind(client, selector));
-    queue.push(function (result) {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: "exists", selector: selector, hash: hash, value: (JSON.parse(result).value === -1 ? 'false' : 'true')});
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
+module.exports.isMultiBrowser = function () {
+  return true;
 };
 
-/**
- *
- */
-
-DalekNative.prototype.visible = function (selector, hash) {
-    queue.push(client.element.bind(client, selector));
-    queue.push(client.displayed.bind(client, selector));
-    queue.push(function (result) {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: "visible", selector: selector, hash: hash, value: JSON.parse(result).value});
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
+module.exports.verifyBrowser = function () {
+  return true;
 };
 
-/**
- *
- */
+module.exports.create = function (opts) {
+  // load the remote command helper methods
+  var dir = __dirname + '/lib/commands/';
+  fs.readdirSync(dir).forEach(function (file) {
+    require(dir + file)(DalekNative);
+  });
 
-DalekNative.prototype.text = function (selector, expected, hash) {
-    queue.push(client.element.bind(client, selector));
-    queue.push(client.text.bind(client, selector));
-    queue.push(function (result) {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'text', hash: hash, expected: expected, selector: selector, value: JSON.parse(result).value});
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
-};
-
-/**
- *
- */
-
-DalekNative.prototype.attribute = function (selector, attribute, expected, hash) {
-    queue.push(client.element.bind(client, selector));
-    queue.push(client.getAttribute.bind(client, attribute));
-    queue.push(function (result) {
-        var deferred = Q.defer();
-
-        if (attribute === 'href' && expected[0] === '#') {
-            var res = JSON.parse(result);
-            var val = res.value.substring(res.value.lastIndexOf('#'));
-            this.events.emit('driver:message', {key: 'attribute', selector: selector, hash: hash, expected: expected, value: val});
-        } else {
-            this.events.emit('driver:message', {key: 'attribute', selector: selector, expected: expected, value: JSON.parse(result).value });
-        }
-
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
-};
-
-/**
- *
- */
-
-DalekNative.prototype.click = function (selector, hash, uuid) {
-    queue.push(client.element.bind(client, selector));
-    queue.push(client.click.bind(client));
-    queue.push(function () {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'click', value: selector, uuid: uuid, hash: hash});
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
-};
-
-/**
- *
- */
-
-DalekNative.prototype.waitForElement = function (selector, timeout, hash, uuid) {
-    queue.push(client.implicitWait.bind(client, timeout));
-    queue.push(function () {
-        var deferred = Q.defer();
-        setTimeout(function () {
-            this.events.emit('driver:message', {key: 'waitForElement', selector: selector, uuid: uuid, hash: hash});
-            deferred.resolve();
-        }.bind(this), timeout);
-        return deferred.promise;
-    }.bind(this));
-};
-
-/**
- *
- */
-
-DalekNative.prototype.getNumberOfElements = function (selector, expected, hash) {
-    queue.push(client.elements.bind(client, selector));
-    queue.push(function (res) {
-        var deferred = Q.defer();
-        var result = JSON.parse(res);
-
-        if (result.value === -1) {
-            this.events.emit('driver:message', {key: 'numberOfElements', hash: hash, selector: selector, expected: expected, value: 0});
-        } else {
-            this.events.emit('driver:message', {key: 'numberOfElements', selector: selector, expected: expected, hash: hash, value: result.value.length});
-        }
-
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
-};
-
-/**
- *
- */
-
-DalekNative.prototype.back = function (hash, uuid) {
-    queue.push(client.back.bind(client));
-    queue.push(function () {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'back', value: null, uuid: uuid, hash: hash});
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
-};
-
-/**
- *
- */
-
-DalekNative.prototype.forward = function (hash, uuid) {
-    queue.push(client.forward.bind(client));
-    queue.push(function () {
-        var deferred = Q.defer();
-        this.events.emit('driver:message', {key: 'forward', value: null, uuid: uuid, hash: hash});
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
-};
-
-/**
- *
- */
-
-DalekNative.prototype.screenshot = function (path, pathname, hash, uuid) {
-    queue.push(client.screenshot.bind(client));
-    queue.push(function (result) {
-        var deferred = Q.defer();
-        var base64Data = JSON.parse(result).value.replace(/^data:image\/png;base64,/,"");
-        var filename = path + pathname.replace('.png', '_' + this.browserName + '.png');
-        require("fs").writeFile(filename, base64Data, 'base64', function(err) {
-            this.events.emit('driver:message', {key: 'screenshot', value: filename, uuid: uuid, hash: hash});
-        }.bind(this));
-        deferred.resolve();
-        return deferred.promise;
-    }.bind(this));
+  return new DalekNative(opts);
 };

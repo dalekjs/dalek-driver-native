@@ -41,24 +41,8 @@ var WD = require('dalek-internal-webdriver');
 
 var DalekNative = function (opts) {
   var browsers = opts.config.get('browsers')[0];
-  var browserConf = null;
-  var browser;
-
-
-  // TODO: REFACTOR & FINISH
-  try {
-    browser = require('dalek-browser-' + opts.browser);
-
-    if (browsers[opts.browser]) {
-      browserConf = browsers[opts.browser];
-    }
-
-  } catch (e) {
-    if (browsers[opts.browser] && browsers[opts.browser].actAs) {
-      browser = require('dalek-browser-' + browsers[opts.browser].actAs);
-      browserConf = browsers[opts.browser];
-    }
-  }
+  var browserConf = opts.browserConf;
+  var browser = opts.browserMo;
 
   // prepare properties
   this.actionQueue = [];

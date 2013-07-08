@@ -109,13 +109,13 @@ module.exports = function (grunt) {
     var fs = require('fs');
 
     var platoDummyFolders = [
-    'coverage', 'report', 'report/coverage', 'report/complexity',
-    'report/complexity/files', 'report/complexity/files/test',
-    'report/complexity/files/index_js',
-    'report/complexity/files/lib_commands_element_js',
-    'report/complexity/files/lib_commands_page_js',
-    'report/complexity/files/lib_commands_screenshot_js',
-    'report/complexity/files/lib_commands_url_js'
+      'coverage', 'report', 'report/coverage', 'report/complexity',
+      'report/complexity/files', 'report/complexity/files/test',
+      'report/complexity/files/index_js',
+      'report/complexity/files/lib_commands_element_js',
+      'report/complexity/files/lib_commands_page_js',
+      'report/complexity/files/lib_commands_screenshot_js',
+      'report/complexity/files/lib_commands_url_js'
     ];
     var platoDummyFiles = ['/report/complexity/report.history.json', '/report/complexity/files/report.history.json',
       '/report/complexity/files/index_js/report.history.json',
@@ -145,7 +145,7 @@ module.exports = function (grunt) {
     });
 
     // generate code coverage helper file
-    var coverageHelper = 'require("blanket")({pattern: require("fs").realpathSync(__dirname + "/../index.js")});';
+    var coverageHelper = 'require("blanket")({pattern: [require("fs").realpathSync(__dirname + "/../index.js"), require("fs").realpathSync(__dirname + "/../lib/commands/")]});';
     fs.writeFileSync(__dirname + '/coverage/blanket.js', coverageHelper);
   });
 

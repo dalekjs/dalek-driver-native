@@ -1,11 +1,12 @@
 'use strict';
 
 var expect = require('chai').expect;
+var driver = require('../index.js');
 
 describe('dalek-driver-native', function() {
 
   it('i should think of proper testing', function(){
-    expect('native').to.equal('native');
+    expect(driver).to.be.ok;
   });
 
 });

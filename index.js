@@ -32,35 +32,28 @@ var Q = require('q');
 var WD = require('dalek-internal-webdriver');
 
 /**
- * @module
- */
-
-/**
+ * Loads the webdriver client,
+ * launches the browser,
+ * initializes al object properties,
+ * binds to browser events
+ *
+ * @param {object} opts Options needed to kick off the driver
  * @constructor
  */
 
-var DalekNative = function (opts) {
-  var browsers = opts.config.get('browsers')[0];
+var DriverNative = function (opts) {
+  // get the browser configuration & the browser module
   var browserConf = opts.browserConf;
   var browser = opts.browserMo;
 
   // prepare properties
-  this.actionQueue = [];
-  this.lastCalledUrl = null;
-  this.driverStatus = {};
-  this.sessionStatus = {};
-
-  // store injcted options in object properties
-  this.events = opts.events;
-  this.browserName = opts.browser;
+  this._initializeProperties(opts);
 
   // create a new webdriver client instance
   this.webdriverClient = new WD(browser);
 
-  // issue the kill command to the browser, when all tests are completed
-  this.events.on('tests:complete:native:' + this.browserName, browser.kill.bind(browser));
-  // clear the webdriver session, when all tests are completed
-  this.events.on('tests:complete:native:' + this.browserName, this.webdriverClient.closeSession.bind(this.webdriverClient));
+  // listen on browser events
+  this._startBrowserEventListeners(browser);
 
   // launch the browser & when the browser launch
   // promise is fullfilled, issue the driver:ready event
@@ -71,122 +64,266 @@ var DalekNative = function (opts) {
 };
 
 /**
- * Checks if a webdriver session has already been established,
- * if not, create a new one
+ * Launches the browsers to test
+ * and handles the webdriver requests & responses
  *
- * @method start
- * @return {Q.promise}
+ * @module Driver
+ * @class DriverNative
+ * @namespace Dalek
  */
 
-DalekNative.prototype.start = function () {
-  var deferred = Q.defer();
+DriverNative.prototype = {
 
-  // check if a session is already active,
-  // if so, reuse that one
-  if(this.webdriverClient.hasSession()) {
-    deferred.resolve();
+  /**
+   * Initializes the driver properties
+   *
+   * @method _initializeProperties
+   * @param {object} opts Options needed to kick off the driver
+   * @chainable
+   * @private
+   */
+
+  _initializeProperties: function (opts) {
+    // prepare properties
+    this.actionQueue = [];
+    this.lastCalledUrl = null;
+    this.driverStatus = {};
+    this.sessionStatus = {};
+    // store injcted options in object properties
+    this.events = opts.events;
+    this.browserName = opts.browser;
+    return this;
+  },
+
+  /**
+   * Binds listeners on browser events
+   *
+   * @method _initializeProperties
+   * @param {object} browser Browser module
+   * @chainable
+   * @private
+   */
+
+  _startBrowserEventListeners: function (browser) {
+    // issue the kill command to the browser, when all tests are completed
+    this.events.on('tests:complete:native:' + this.browserName, browser.kill.bind(browser));
+    // clear the webdriver session, when all tests are completed
+    this.events.on('tests:complete:native:' + this.browserName, this.webdriverClient.closeSession.bind(this.webdriverClient));
+    return this;
+  },
+
+  /**
+   * Checks if a webdriver session has already been established,
+   * if not, create a new one
+   *
+   * @method start
+   * @return {object} promise Driver promise
+   */
+
+  start: function () {
+    var deferred = Q.defer();
+
+    // check if a session is already active,
+    // if so, reuse that one
+    if(this.webdriverClient.hasSession()) {
+      deferred.resolve();
+      return deferred.promise;
+    }
+
+    // start a browser session
+    this._startBrowserSession(deferred);
+
     return deferred.promise;
-  }
+  },
 
-  // create a new webdriver session
-  // get the driver status
-  // get the session status
-  // resolve the promise (e.g. let them tests run)
-  this.webdriverClient
-    .createSession()
-    .then(this.webdriverClient.status.bind(this.webdriverClient))
-    .then(this._driverStatus.bind(this))
-    .then(this.webdriverClient.sessionInfo.bind(this.webdriverClient))
-    .then(this._sessionStatus.bind(this))
-    .then(deferred.resolve);
+  /**
+   * Creates a new webdriver session
+   * Gets the driver status
+   * Gets the session status
+   * Resolves the promise (e.g. let them tests run)
+   *
+   * @method _startBrowserSession
+   * @param {object} deferred Browser session deferred
+   * @chainable
+   * @private
+   */
 
-  return deferred.promise;
-};
+  _startBrowserSession: function (deferred) {
+    this.webdriverClient
+      .createSession()
+      .then(this.webdriverClient.status.bind(this.webdriverClient))
+      .then(this._driverStatus.bind(this))
+      .then(this.webdriverClient.sessionInfo.bind(this.webdriverClient))
+      .then(this._sessionStatus.bind(this))
+      .then(deferred.resolve);
+    return this;
+  },
 
-/**
- *
- */
+  /**
+   * Starts to execution of a batch of tests
+   *
+   * @method end
+   * @chainable
+   */
 
-DalekNative.prototype.run = function () {};
+  end: function () {
+    var result = Q.resolve();
 
-/**
- *
- */
+    // loop through all promises created by the remote methods
+    // this is synchronous, so it waits if a method is finished before
+    // the next one will be executed
+    this.actionQueue.forEach(function (f) {
+      result = result.then(f);
+    });
 
-DalekNative.prototype.end = function () {
-  var result = Q.resolve();
+    // flush the queue & fire an event
+    // when the queue finished its executions
+    result.then(this.flushQueue.bind(this));
+    return this;
+  },
 
-  // loop through all promises created by the remote methods
-  // this is synchronous, so it waits if a method is finished before
-  // the next one will be executed
-  this.actionQueue.forEach(function (f) {
-    result = result.then(f);
-  });
+  /**
+   * Flushes the action queue (e.g. commands that should be send to the wbdriver server)
+   *
+   * @method flushQueue
+   * @chainable
+   */
 
-  // flush the queue & fire an event
-  // when the queue finished its executions
-  result.then(function () {
+  flushQueue: function () {
     // clear the action queue
     this.actionQueue = [];
     // emit the run.complete event
     this.events.emit('driver:message', {key: 'run.complete', value: null});
-  }.bind(this));
-};
+    return this;
+  },
 
-/**
- *
- */
+  /**
+   * Loads the browser session status
+   *
+   * @method _sessionStatus
+   * @param {object} sessionInfo Session information
+   * @return {object} promise Browser session promise
+   * @private
+   */
 
-DalekNative.prototype._sessionStatus = function (sessionInfo) {
-  var defer = Q.defer();
-  this.sessionStatus = JSON.parse(sessionInfo).value;
-  this.events.emit('driver:sessionStatus:native:' + this.browserName, this.sessionStatus);
-  defer.resolve();
-  return defer.promise;
-};
+  _sessionStatus: function (sessionInfo) {
+    var defer = Q.defer();
+    this.sessionStatus = JSON.parse(sessionInfo).value;
+    this.events.emit('driver:sessionStatus:native:' + this.browserName, this.sessionStatus);
+    defer.resolve();
+    return defer.promise;
+  },
 
-/**
- *
- */
+  /**
+   * Loads the browser driver status
+   *
+   * @method _driverStatus
+   * @param {object} statusInfo Driver status information
+   * @return {object} promise Driver status promise
+   * @private
+   */
 
-DalekNative.prototype._driverStatus = function (statusInfo) {
-  var defer = Q.defer();
-  this.driverStatus = JSON.parse(statusInfo).value;
-  this.events.emit('driver:status:native:' + this.browserName, this.driverStatus);
-  defer.resolve();
-  return defer.promise;
-};
+  _driverStatus: function (statusInfo) {
+    var defer = Q.defer();
+    this.driverStatus = JSON.parse(statusInfo).value;
+    this.events.emit('driver:status:native:' + this.browserName, this.driverStatus);
+    defer.resolve();
+    return defer.promise;
+  },
 
-/**
- *
- */
+  /**
+   * Creates an anonymus function that calls a webdriver
+   * method that has no return value, emits an empty result event
+   * if the function has been run
+   * TODO: Name is weird, should be saner
+   *
+   * @method _createNonReturnee
+   * @param {string} fnName Name of the webdriver function that should be called
+   * @return {function} fn
+   * @private
+   */
 
-DalekNative.prototype._createNonReturnee = function (fnName) {
-  return function (hash, uuid) {
+  _createNonReturnee: function (fnName) {
+    return this._actionQueueNonReturneeTemplate.bind(this, fnName);
+  },
+
+  /**
+   * Generates a chain of webdriver calls for webdriver
+   * methods that don't have a return value
+   * TODO: Name is weird, should be saner
+   *
+   * @method _actionQueueNonReturneeTemplate
+   * @param {string} fnName Name of the webdriver function that should be called
+   * @param {string} hash Unique action hash
+   * @param {string} uuid Unique action hash
+   * @chainable
+   * @private
+   */
+
+  _actionQueueNonReturneeTemplate:function (fnName, hash, uuid) {
     this.actionQueue.push(this.webdriverClient[fnName].bind(this.webdriverClient));
-    this.actionQueue.push(function () {
-      var deferred = Q.defer();
-      this.events.emit('driver:message', {key: fnName, value: null, uuid: uuid, hash: hash});
-      deferred.resolve();
-      return deferred.promise;
-    }.bind(this));
-  }.bind(this);
+    this.actionQueue.push(this._generateDummyDriverMessageFn.bind(this, fnName, hash, uuid));
+    return this;
+  },
+
+  /**
+   * Creates a driver notification with an empty value
+   * TODO: Name is weird, should be saner
+   *
+   * @method _generateDummyDriverMessageFn
+   * @param {string} fnName Name of the webdriver function that should be called
+   * @param {string} hash Unique action hash
+   * @param {string} uuid Unique action hash
+   * @return {object} promise Driver message promise
+   * @private
+   */
+
+  _generateDummyDriverMessageFn: function (fnName, hash, uuid) {
+    var deferred = Q.defer();
+    this.events.emit('driver:message', {key: fnName, value: null, uuid: uuid, hash: hash});
+    deferred.resolve();
+    return deferred.promise;
+  }
 };
+
+/**
+ * Determines if the driver is a "multi" browser driver,
+ * e.g. can handle more than one browser
+ *
+ * @method isMultiBrowser
+ * @return {bool} isMultiBrowser Driver can handle more than one browser
+ */
 
 module.exports.isMultiBrowser = function () {
   return true;
 };
 
+/**
+ * Verifies a browser request
+ * TODO: Still a noop, need to add "verify the browser" logic
+ *
+ * @method verifyBrowser
+ * @return {bool} isVerifiedBrowser Driver can handle this browser
+ */
+
 module.exports.verifyBrowser = function () {
   return true;
 };
+
+/**
+ * Creates a new driver instance
+ *
+ * @method create
+ * @param {object} opts Options needed to kick off the driver
+ * @return {DriverNative} driver
+ */
 
 module.exports.create = function (opts) {
   // load the remote command helper methods
   var dir = __dirname + '/lib/commands/';
   fs.readdirSync(dir).forEach(function (file) {
-    require(dir + file)(DalekNative);
+    require(dir + file)(DriverNative);
   });
 
-  return new DalekNative(opts);
+  return new DriverNative(opts);
 };

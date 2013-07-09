@@ -3,18 +3,18 @@ dalek-driver-native
 
 > DalekJS driver for native JavaScript webdriver communication
 
-[![Build Status](https://travis-ci.org/dalekjs/dalek-dalek-driver-native.png)](https://travis-ci.org/dalekjs/dalek-dalek-driver-native)
-[![Build Status](https://drone.io/github.com/dalekjs/dalek-dalek-driver-native/status.png)](https://drone.io/github.com/dalekjs/dalek-dalek-driver-native/latest)
-[![Dependency Status](https://david-dm.org/dalekjs/dalek-dalek-driver-native.png)](https://david-dm.org/dalekjs/dalek-dalek-driver-native)
-[![devDependency Status](https://david-dm.org/dalekjs/dalek-dalek-driver-native/dev-status.png)](https://david-dm.org/dalekjs/dalek-dalek-driver-native#info=devDependencies)
-[![NPM version](https://badge.fury.io/js/dalek-dalek-driver-native.png)](http://badge.fury.io/js/dalek-dalek-driver-native)
+[![Build Status](https://travis-ci.org/dalekjs/dalek-driver-native.png)](https://travis-ci.org/dalekjs/dalek-driver-native)
+[![Build Status](https://drone.io/github.com/dalekjs/dalek-driver-native/status.png)](https://drone.io/github.com/dalekjs/dalek-driver-native/latest)
+[![Dependency Status](https://david-dm.org/dalekjs/dalek-dalek-driver-native.png)](https://david-dm.org/dalekjs/dalek-driver-native)
+[![devDependency Status](https://david-dm.org/dalekjs/dalek-driver-native/dev-status.png)](https://david-dm.org/dalekjs/dalek-driver-native#info=devDependencies)
+[![NPM version](https://badge.fury.io/js/dalek-driver-native.png)](http://badge.fury.io/js/dalek-driver-native)
 
 ## Ressources
 
-[API Documentation](http://dalekjs.com/package/dalek-dalek-driver-native/master/api/index.html) -
-[Code coverage](http://dalekjs.com/package/dalek-dalek-driver-native/master/coverage/index.html) -
-[Code complexity](http://dalekjs.com/package/dalek-dalek-driver-native/master/complexity/index.html) -
-[Contributing](https://github.com/dalekjs/dalek-dalek-driver-native/blob/master/CONTRIBUTING.md) -
+[API Documentation](http://dalekjs.com/package/dalek-driver-native/master/api/index.html) -
+[Code coverage](http://dalekjs.com/package/dalek-driver-native/master/coverage/index.html) -
+[Code complexity](http://dalekjs.com/package/dalek-driver-native/master/complexity/index.html) -
+[Contributing](https://github.com/dalekjs/dalek-driver-native/blob/master/CONTRIBUTING.md) -
 [User Docs](http://dalekjs.com/docs/master/driver/native.html) -
 [Homepage](http://dalekjs.com) -
 [Twitter](http://twitter.com/dalekjs)
@@ -42,7 +42,7 @@ how to override that feature, browser specific problems and so on.
 
 Questions on StackOverflow often turn in to blog posts or issues.
 
-### [Github Issues](//github.com/dalekjs/dalek-internal-assertions/issues)
+### [Github Issues](//github.com/dalekjs/dalek-driver-native/issues)
 
 Report issues with DalekJS, submit pull requests to fix problems, or to
 create summarized and documented feature requests (preferably with pull
@@ -58,5 +58,5 @@ Google Groups mailing list.
 
 Copyright (c) 2013 Sebastian Golasch
 
-Distributed under [MIT license](https://github.com/dalekjs/dalek-dalek-driver-native/blob/master/LICENSE-MIT)
+Distributed under [MIT license](https://github.com/dalekjs/dalek-driver-native/blob/master/LICENSE-MIT)
 

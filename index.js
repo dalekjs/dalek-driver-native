@@ -86,6 +86,7 @@ DriverNative.prototype = {
   _initializeProperties: function (opts) {
     // prepare properties
     this.actionQueue = [];
+    this.config = opts.config;
     this.lastCalledUrl = null;
     this.driverStatus = {};
     this.sessionStatus = {};
@@ -149,8 +150,10 @@ DriverNative.prototype = {
    */
 
   _startBrowserSession: function (deferred) {
+    var viewport = this.config.get('viewport');
     this.webdriverClient
       .createSession()
+      .then(this.webdriverClient.setWindowSize.bind(this.webdriverClient, viewport.width, viewport.height))
       .then(this.webdriverClient.status.bind(this.webdriverClient))
       .then(this._driverStatus.bind(this))
       .then(this.webdriverClient.sessionInfo.bind(this.webdriverClient))

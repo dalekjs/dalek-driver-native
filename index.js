@@ -70,6 +70,8 @@ var DriverNative = function (opts) {
  * @module Driver
  * @class DriverNative
  * @namespace Dalek
+ * @part DriverNative
+ * @api
  */
 
 DriverNative.prototype = {

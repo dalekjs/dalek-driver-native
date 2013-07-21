@@ -1,3 +1,4 @@
+/* jshint camelcase: false */
 module.exports = function (grunt) {
   'use strict';
 
@@ -14,8 +15,12 @@ module.exports = function (grunt) {
       src: ['index.js', 'lib/**/*.js']
     },
 
-    // clean coverage helper file
-    clean: ['coverage', 'report', 'report.zip'],
+    // clean automatically generated helper files & docs
+    clean: {
+      coverage: ['coverage', 'report/coverage'],
+      report: ['report/complexity', 'report/api', 'report/docs'],
+      reportZip: ['report.zip']
+    },
 
     // linting
     jshint: {
@@ -90,6 +95,19 @@ module.exports = function (grunt) {
       src: ['index.js']
     },
 
+    // add current timestamp to the html document
+    includereplace: {
+      dist: {
+        options: {
+          globals: {
+            timestamp: '<%= grunt.template.today("dddd, mmmm dS, yyyy, h:MM:ss TT") %>'
+          },
+        },
+        src: 'report/docs/*.html',
+        dest: '.'
+      }
+    },
+
     // compress artifacts
     compress: {
       main: {
@@ -104,49 +122,123 @@ module.exports = function (grunt) {
 
   });
 
-  // prepare files & folders for grunt:plato & coverage
-  grunt.registerTask('prepare', function () {
+  // prepare files & folders for grunt:plato
+  grunt.registerTask('preparePlato', function () {
     var fs = require('fs');
 
     var platoDummyFolders = [
-      'coverage', 'report', 'report/coverage', 'report/complexity',
+      'report', 'report/complexity',
       'report/complexity/files', 'report/complexity/files/test',
       'report/complexity/files/index_js',
+      'report/complexity/files/lib_commands_cookie_js',
       'report/complexity/files/lib_commands_element_js',
+      'report/complexity/files/lib_commands_frame_js',
       'report/complexity/files/lib_commands_page_js',
       'report/complexity/files/lib_commands_screenshot_js',
+      'report/complexity/files/lib_commands_window_js',
       'report/complexity/files/lib_commands_url_js'
     ];
     var platoDummyFiles = ['/report/complexity/report.history.json', '/report/complexity/files/report.history.json',
       '/report/complexity/files/index_js/report.history.json',
+      '/report/complexity/files/lib_commands_cookie_js/report.history.json',
       '/report/complexity/files/lib_commands_element_js/report.history.json',
+      '/report/complexity/files/lib_commands_frame_js/report.history.json',
       '/report/complexity/files/lib_commands_page_js/report.history.json',
       '/report/complexity/files/lib_commands_screenshot_js/report.history.json',
-      '/report/complexity/files/lib_commands_url_js/report.history.json'
+      '/report/complexity/files/lib_commands_url_js/report.history.json',
+      '/report/complexity/files/lib_commands_window_js/report.history.json'
     ];
-
-    // loopy loop
-    ['/test/'].forEach(function (folder) {
-      fs.readdirSync(__dirname + folder).forEach(function (file) {
-        var platoFolder = '/report/complexity/files/' + folder.substring(1).replace(/\//g, '_') + file.replace('.js', '_js');
-        platoDummyFolders.push(platoFolder);
-        platoDummyFiles.push(platoFolder + '/report.history.json');
-      });
-    });
 
     // generate dirs for docs & reports
     platoDummyFolders.forEach(function (path) {
-      fs.mkdirSync(__dirname + '/' + path);
+      if (!fs.existsSync(__dirname + '/' + path)) {
+        fs.mkdirSync(__dirname + '/' + path);
+      }
     });
 
     // store some dummy reports, so that grunt plato doesnt complain
     platoDummyFiles.forEach(function (file) {
-      fs.writeFileSync(__dirname + file, '{}');
+      if (!fs.existsSync(__dirname + file)) {
+        fs.writeFileSync(__dirname + file, '{}');
+      }
+    });
+  });
+
+  // prepare files & folders for coverage
+  grunt.registerTask('prepareCoverage', function () {
+    var fs = require('fs');
+
+    // generate folders
+    ['coverage', 'report', 'report/coverage'].forEach(function (folder) {
+      if (!fs.existsSync(__dirname + '/' + folder)) {
+        fs.mkdirSync(__dirname + '/' + folder);
+      }
     });
 
     // generate code coverage helper file
-    var coverageHelper = 'require("blanket")({pattern: [require("fs").realpathSync(__dirname + "/../index.js"), require("fs").realpathSync(__dirname + "/../lib/commands/")]});';
-    fs.writeFileSync(__dirname + '/coverage/blanket.js', coverageHelper);
+    var coverageHelper = 'require("blanket")({pattern: [require("fs").realpathSync(__dirname + "/../index.js"), require("fs").realpathSync(__dirname + "/../lib/")]});';
+    if (!fs.existsSync(__dirname + '/coverage/blanket.js')) {
+      fs.writeFileSync(__dirname + '/coverage/blanket.js', coverageHelper);
+    }
+  });
+
+
+  // generates a coverage badge
+  grunt.registerTask('generateCoverageBadge', function () {
+    var fs = require('fs');
+    if (fs.existsSync(__dirname + '/node_modules/coverage-badge')) {
+      if (fs.existsSync(__dirname + '/report/coverage/coverage.json')) {
+        var green = [147,188,59];
+        var yellow = [166,157,0];
+        var red = [189,0,2];
+
+        var getColor = function (coverage) {
+          if (coverage > 90) {
+            return mixColors(yellow, green, (coverage-90)/10);
+          }
+
+          if (coverage > 80) {
+            return mixColors(red, yellow, (coverage-80)/10);
+          }
+
+          return createColor(red);
+        };
+
+        var mixColors = function (from, to, ratio) {
+          var result = [], i;
+          for (i=0; i<3; i++) {
+            result[i] = Math.round(from[i] + (ratio * (to[i]-from[i])));
+          }
+          return createColor(result);
+        };
+
+        var createColor = function (values) {
+          return 'rgba('+values[0]+','+values[1]+','+values[2]+',1)';
+        };
+
+        var Badge = require(__dirname + '/node_modules/coverage-badge/lib/Badge.js');
+        var badgeFn = function(coverage) {
+          coverage = Math.floor(Number(coverage));
+          var badge = new Badge({
+            box_color: getColor(coverage),
+            box_text: coverage+'%',
+            label_text: 'cov',
+            height: 18,
+            width: 49,
+            box_width: 25,
+            rounding: 0,
+            padding: 0,
+            label_font: '7pt DejaVu Sans',
+            box_font: 'bold 7pt DejaVu Sans'
+          });
+          return badge.stream();
+        };
+
+        var coverage = JSON.parse(fs.readFileSync(__dirname + '/report/coverage/coverage.json')).coverage;
+        var file = fs.createWriteStream(__dirname + '/report/coverage/coverage.png');
+        badgeFn(coverage).pipe(file);
+      }
+    }
   });
 
   // load 3rd party tasks
@@ -158,9 +250,12 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-complexity');
   grunt.loadNpmTasks('grunt-documantix');
   grunt.loadNpmTasks('grunt-plato');
+  grunt.loadNpmTasks('grunt-include-replace');
 
   // define runner tasks
   grunt.registerTask('lint', 'jshint');
-  grunt.registerTask('test', ['clean', 'prepare', 'lint', 'mochaTest', 'complexity']);
-  grunt.registerTask('docs', ['clean', 'prepare', 'plato', 'mochaTest', 'documantix', 'yuidoc', 'compress']);
+  grunt.registerTask('test', ['clean:coverage', 'prepareCoverage', 'lint', 'mochaTest', 'generateCoverageBadge', 'complexity']);
+  grunt.registerTask('docs', ['clean:reportZip', 'clean:report', 'preparePlato', 'plato', 'documantix', 'includereplace', 'yuidoc', 'compress']);
+  grunt.registerTask('all', ['clean', 'test', 'docs']);
+
 };

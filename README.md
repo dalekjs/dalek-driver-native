@@ -8,6 +8,10 @@ dalek-driver-native
 [![Dependency Status](https://david-dm.org/dalekjs/dalek-dalek-driver-native.png)](https://david-dm.org/dalekjs/dalek-driver-native)
 [![devDependency Status](https://david-dm.org/dalekjs/dalek-driver-native/dev-status.png)](https://david-dm.org/dalekjs/dalek-driver-native#info=devDependencies)
 [![NPM version](https://badge.fury.io/js/dalek-driver-native.png)](http://badge.fury.io/js/dalek-driver-native)
+[![Coverage](http://dalekjs.com/package/dalek-driver-native/master/coverage/coverage.png)](http://dalekjs.com/package/dalek-driver-native/master/coverage/index.html)
+[![unstable](https://rawgithub.com/hughsk/stability-badges/master/dist/unstable.svg)](http://github.com/hughsk/stability-badges)
+
+[![NPM](https://nodei.co/npm/dalek-driver-native.png)](https://nodei.co/npm/dalek-driver-native/)
 
 ## Ressources
 
@@ -15,7 +19,7 @@ dalek-driver-native
 [Code coverage](http://dalekjs.com/package/dalek-driver-native/master/coverage/index.html) -
 [Code complexity](http://dalekjs.com/package/dalek-driver-native/master/complexity/index.html) -
 [Contributing](https://github.com/dalekjs/dalek-driver-native/blob/master/CONTRIBUTING.md) -
-[User Docs](http://dalekjs.com/docs/master/driver/native.html) -
+[User Docs](http://dalekjs.com/docs/drivernative.html) -
 [Homepage](http://dalekjs.com) -
 [Twitter](http://twitter.com/dalekjs)
 

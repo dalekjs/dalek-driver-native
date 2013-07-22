@@ -1,5 +1,5 @@
 dalek-driver-native
-=====================
+===================
 
 > DalekJS driver for native JavaScript webdriver communication
 
@@ -15,7 +15,8 @@ dalek-driver-native
 
 ## Ressources
 
-[API Documentation](http://dalekjs.com/package/dalek-driver-native/master/api/index.html) -
+[API Docs](http://dalekjs.com/package/dalek-driver-native/master/api/index.html) -
+[Trello](https://trello.com/b/896PxIhS/dalek-driver-native) -
 [Code coverage](http://dalekjs.com/package/dalek-driver-native/master/coverage/index.html) -
 [Code complexity](http://dalekjs.com/package/dalek-driver-native/master/complexity/index.html) -
 [Contributing](https://github.com/dalekjs/dalek-driver-native/blob/master/CONTRIBUTING.md) -

@@ -12,6 +12,7 @@ dalek-driver-native
 [![unstable](https://rawgithub.com/hughsk/stability-badges/master/dist/unstable.svg)](http://github.com/hughsk/stability-badges)
 
 [![NPM](https://nodei.co/npm/dalek-driver-native.png)](https://nodei.co/npm/dalek-driver-native/)
+[![NPM](https://nodei.co/npm-dl/dalek-driver-native.png)](https://nodei.co/npm/dalek-driver-native/)
 
 ## Ressources
 
@@ -23,6 +24,15 @@ dalek-driver-native
 [User Docs](http://dalekjs.com/docs/drivernative.html) -
 [Homepage](http://dalekjs.com) -
 [Twitter](http://twitter.com/dalekjs)
+
+## Docs
+
+Daleks Native driver for third party driver communication. Defines a set of javascript interfaces,
+every third party needs to implement in order to be Dalek compliant.
+Details will follow soon, in the meantime, please check the [API Docs](http://dalekjs.com/package/dalek-driver-native/master/api/index.html).
+
+It comes bundled with an Webdriver compliant adapter, please check that one out, if you wan't to see, how drivers
+can be implemented.
 
 ## Help Is Just A Click Away
 

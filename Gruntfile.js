@@ -305,6 +305,12 @@ module.exports = function (grunt) {
     canaryPkg.name = canaryPkg.name + '-canary';
     canaryPkg.version = canaryPkg.version + '-' + grunt.template.today('yyyy-mm-dd-HH-MM-ss');
 
+    // replace default includes with canary ones
+    var indexContents = grunt.file.read('index.js');
+    var oldContents = grunt.file.read('index.js');
+    indexContents = indexContents.replace('dalek-internal-webdriver', 'dalek-internal-webdriver-canary');
+    grunt.file.write('index.js', indexContents);
+
     grunt.file.write('package.json', JSON.stringify(canaryPkg, true, 2));
 
     var npm = require('npm');
@@ -313,11 +319,13 @@ module.exports = function (grunt) {
         if (err) {
           grunt.log.error(err);
           grunt.file.write('package.json', JSON.stringify(pkg, true, 2));
+          grunt.file.write('index.js', oldContents);
           done(false);
         } else {
           npm.config.set('email', process.env.npmmail, 'user');
           npm.commands.publish([], function(err) {
             grunt.file.write('package.json', JSON.stringify(pkg, true, 2));
+            grunt.file.write('index.js', oldContents);
             grunt.log.ok('Published canary build to registry');
             done(!err);
           });

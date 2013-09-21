@@ -50,17 +50,21 @@ var DriverNative = function (opts) {
   this._initializeProperties(opts);
 
   // create a new webdriver client instance
-  this.webdriverClient = new WD(browser);
+  this.webdriverClient = new WD(browser, this.events);
 
   // listen on browser events
   this._startBrowserEventListeners(browser);
+
+  // store desired capabilities of this session
+  this.desiredCapabilities = browser.desiredCapabilities;
+  this.browserDefaults = browser.driverDefaults;
 
   // launch the browser & when the browser launch
   // promise is fullfilled, issue the driver:ready event
   // for the particular browser
   browser
-    .launch(browserConf)
-    .then(this.events.emit.bind(this.events, 'driver:ready:native:' + this.browserName));
+    .launch(browserConf, this.reporterEvents, this.config)
+    .then(this.events.emit.bind(this.events, 'driver:ready:native:' + this.browserName, browser));
 };
 
 /**
@@ -94,6 +98,7 @@ DriverNative.prototype = {
     this.sessionStatus = {};
     // store injcted options in object properties
     this.events = opts.events;
+    this.reporterEvents = opts.reporter;
     this.browserName = opts.browser;
     return this;
   },
@@ -134,7 +139,7 @@ DriverNative.prototype = {
     }
 
     // start a browser session
-    this._startBrowserSession(deferred);
+    this._startBrowserSession(deferred, this.desiredCapabilities, this.browserDefaults);
 
     return deferred.promise;
   },
@@ -151,16 +156,37 @@ DriverNative.prototype = {
    * @private
    */
 
-  _startBrowserSession: function (deferred) {
+  _startBrowserSession: function (deferred, desiredCapabilities, defaults) {
     var viewport = this.config.get('viewport');
-    this.webdriverClient
-      .createSession()
-      .then(this.webdriverClient.setWindowSize.bind(this.webdriverClient, viewport.width, viewport.height))
-      .then(this.webdriverClient.status.bind(this.webdriverClient))
-      .then(this._driverStatus.bind(this))
-      .then(this.webdriverClient.sessionInfo.bind(this.webdriverClient))
-      .then(this._sessionStatus.bind(this))
-      .then(deferred.resolve);
+
+    // start a session, transmit the desired capabilities
+    var promise = this.webdriverClient.createSession({desiredCapabilities: desiredCapabilities});
+
+    // set the default viewport if supported by the browser
+    if (defaults.viewport) {
+      promise = promise.then(this.webdriverClient.setWindowSize.bind(this.webdriverClient, viewport.width, viewport.height));
+    }
+
+    // get the driver status if supported by the browser
+    if (defaults.status === true) {
+      promise = promise
+        .then(this.webdriverClient.status.bind(this.webdriverClient))
+        .then(this._driverStatus.bind(this));
+    } else {
+      promise = promise.then(this._driverStatus.bind(this, JSON.stringify({value: defaults.status})));
+    }
+
+    // get the session info if supported by the browser
+    if (defaults.sessionInfo === true) {
+      promise = promise
+        .then(this.webdriverClient.sessionInfo.bind(this.webdriverClient))
+        .then(this._sessionStatus.bind(this))
+    } else {
+      promise = promise.then(this._driverStatus.bind(this, JSON.stringify({value: defaults.sessionInfo})));
+    }
+
+    // finally resolve the deferred
+    promise.then(deferred.resolve);
     return this;
   },
 
@@ -230,7 +256,7 @@ DriverNative.prototype = {
 
   _driverStatus: function (statusInfo) {
     var defer = Q.defer();
-    this.driverStatus = JSON.parse(statusInfo).value;
+    this.driverStatus = JSON.parse(statusInfo).value;    
     this.events.emit('driver:status:native:' + this.browserName, this.driverStatus);
     defer.resolve();
     return defer.promise;

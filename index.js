@@ -180,7 +180,7 @@ DriverNative.prototype = {
     if (defaults.sessionInfo === true) {
       promise = promise
         .then(this.webdriverClient.sessionInfo.bind(this.webdriverClient))
-        .then(this._sessionStatus.bind(this))
+        .then(this._sessionStatus.bind(this));
     } else {
       promise = promise.then(this._driverStatus.bind(this, JSON.stringify({value: defaults.sessionInfo})));
     }
@@ -256,7 +256,7 @@ DriverNative.prototype = {
 
   _driverStatus: function (statusInfo) {
     var defer = Q.defer();
-    this.driverStatus = JSON.parse(statusInfo).value;    
+    this.driverStatus = JSON.parse(statusInfo).value;
     this.events.emit('driver:status:native:' + this.browserName, this.driverStatus);
     defer.resolve();
     return defer.promise;

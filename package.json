@@ -1,6 +1,6 @@
 {
   "name": "dalek-driver-native",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Native driver for DalekJS",
   "main": "./index.js",
   "homepage": "http://dalekjs.com",

@@ -113,6 +113,10 @@ DriverNative.prototype = {
    */
 
   _startBrowserEventListeners: function (browser) {
+    this.reporterEvents.on('browser:notify:data:' + this.browserName, function (data) {
+      this.desiredCapabilities = data.desiredCapabilities;
+      this.browserDefaults = data.defaults;
+    }.bind(this));
     // issue the kill command to the browser, when all tests are completed
     this.events.on('tests:complete:native:' + this.browserName, browser.kill.bind(browser));
     // clear the webdriver session, when all tests are completed

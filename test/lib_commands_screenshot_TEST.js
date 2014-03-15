@@ -4,18 +4,18 @@ var expect = require('chai').expect;
 var Screenshot = require('../lib/commands/screenshot.js');
 
 describe('dalek-driver-native Commands Screenshot', function() {
-  var MockDate = function(timeString) {
+  var MockDate = function(config) {
     this.getHours = function() {
-      return timeString.hours;
+      return config.hours;
     };
     this.getMinutes = function() {
-      return timeString.minutes;
+      return config.minutes;
     };
     this.getSeconds = function() {
-      return timeString.seconds;
+      return config.seconds;
     };
     this.getTimezoneOffset = function() {
-      return timeString.timezoneOffset;
+      return config.timezoneOffset;
     };
   };
 

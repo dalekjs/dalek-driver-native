@@ -140,8 +140,8 @@ module.exports = function(grunt) {
 
     watch: {
       scripts: {
-        files: ['lib/**/*.js'],
-        tasks: ['test'],
+        files: ['lib/**/*.js', 'test/**/*.js'],
+        tasks: ['lint', 'mochaTest'],
         options: {
           atBegin: true
         }

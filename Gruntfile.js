@@ -136,6 +136,16 @@ module.exports = function(grunt) {
       options: {
         files: ['index.js']
       }
+    },
+
+    watch: {
+      scripts: {
+        files: ['lib/**/*.js'],
+        tasks: ['test'],
+        options: {
+          atBegin: true
+        }
+      }
     }
 
   });

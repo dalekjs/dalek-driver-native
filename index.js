@@ -29,7 +29,15 @@ var fs = require('fs');
 var Q = require('q');
 
 // int. libs
-var WD = require('dalek-internal-webdriver');
+try {
+  var WD = require('dalek-internal-webdriver');
+} catch (e) {
+  try {
+    var WD = require('dalek-internal-webdriver-canary');
+  } catch (e) {
+    return e;
+  }
+}
 
 /**
  * Loads the webdriver client,

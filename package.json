@@ -27,7 +27,8 @@
     "chai": "~1.9.1",
     "load-grunt-tasks": "~0.4.0",
     "time-grunt": "~0.3.1",
-    "dalek-build-tools": "~0.0.2"
+    "dalek-build-tools": "~0.0.2",
+    "grunt-contrib-watch": "^0.6.0"
   },
   "repository": {
     "type": "git",

@@ -30,11 +30,11 @@ dalek-driver-native
 
 ## Docs
 
-Daleks Native driver for third party driver communication. Defines a set of javascript interfaces,
+Dalek's Native driver for third party driver communication. Defines a set of javascript interfaces,
 every third party needs to implement in order to be Dalek compliant.
-Details will follow soon, in the meantime, please check the [API Docs](http://dalekjs.com/package/dalek-driver-native/master/api/index.html).
+Details will follow soon. In the meantime, please check the [API Docs](http://dalekjs.com/package/dalek-driver-native/master/api/index.html).
 
-It comes bundled with an Webdriver compliant adapter, please check that one out, if you wan't to see, how drivers
+It comes bundled with a Webdriver compliant adapter. Please check that one out, if you want to see how drivers
 can be implemented.
 
 ## Help Is Just A Click Away

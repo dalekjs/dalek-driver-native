@@ -6,7 +6,8 @@
   "homepage": "http://dalekjs.com",
   "dependencies": {
     "dalek-internal-webdriver": "~0.0.3",
-    "q": "~1.0.1"
+    "q": "~1.0.1",
+    "pngparse": "^2.0.1"
   },
   "devDependencies": {
     "grunt": "~0.4.4",
